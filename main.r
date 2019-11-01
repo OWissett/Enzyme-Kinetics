@@ -72,7 +72,7 @@ while (1 == 1)
 
 my.manualReplicateEntry <- function()
 {
-  
+  ##Not sure I need this
 }
 
 ######################
@@ -100,42 +100,43 @@ my.average <- function()
  
 }
 
-
-my.removeZero <- function()
-{
-  ## Create a list of matrices to contain 
-  mat_list <- lapply(dat, data.matrix)
-  
-   ## Map dat as a matrix to mat_list
-  Map(function(m ,p) {m[1:nrow(p), 1:ncol(p)]=p; m}, dat, mat_list)
-  
-  RetDFs <- lapply(mat_list, function(x){
-    temp <- x[,-1] ##Create a temp matrix only containing rates
-    meanVector <- rowSums(temp) / ncol(temp) ##take an average of each row of the matrix
-    meanMatrix <- data.frame(conc = x[,1], ##x[,1] is the concentrations
-                             T1 = meanVector, 
-                             T2 = meanVector,
-                             T3 = meanVector)
-    
-    replace <- function(y)
-    {
-      if(0 %in% y){
-        for(index in 1:length(y))
-        {
-          y[[index]] <- 
-        }
-      }
-    }
-    
-    apply(x, replace)
-    
-    return(x)
-    })
-  
-  return(RetDFs)
-  
-}
-
+#####REDUNDANT CODE##########
+# 
+# my.removeZero <- function()
+# {
+#   ## Create a list of matrices to contain
+#   mat_list <- lapply(dat, data.matrix)
+# 
+#    ## Map dat as a matrix to mat_list
+#   Map(function(m ,p) {m[1:nrow(p), 1:ncol(p)]=p; m}, dat, mat_list)
+# 
+#   RetDFs <- lapply(mat_list, function(x){
+#     temp <- x[,-1] ##Create a temp matrix only containing rates
+#     meanVector <- rowSums(temp) / ncol(temp) ##take an average of each row of the matrix
+#     meanMatrix <- data.frame(conc = x[,1], ##x[,1] is the concentrations
+#                              T1 = meanVector,
+#                              T2 = meanVector,
+#                              T3 = meanVector)
+# 
+#     replace <- function(y)
+#     {
+#       if(0 %in% y){
+#         for(index in 1:length(y))
+#         {
+#           y[[index]] <-
+#         }
+#       }
+#     }
+# 
+#     apply(x, replace)
+# 
+#     return(x)
+#     })
+# 
+#   return(RetDFs)
+# 
+# }
+#########################
 
 my.restructure <- function()
 {
@@ -166,28 +167,6 @@ my.recipDat <- function()
   
   recipDat <- lapply(rawDat, function(x)
   {
-    # if(0 %in% x[[2]])                                  ## x[[1]] conc
-    # {                                                  ## x[[2]] rate
-    #   for(index in 1:length(x))
-    #   {
-    #     if(x[[2]][[index]] == 0){
-    #       
-    #     }
-    #   }
-    #   
-    #   # x[[2]] <- sapply(x[[2]], function(y)
-    #   #   {
-    #   #   if(y == 0) {
-    #   #     ##Replace all values with average value
-    #   #     return(y)
-    #   #     
-    #   #     
-    #   #     
-    #   #   }
-    #   #   else return(y)
-    #   #   
-    #   # })
-    # }
     tempDF <- data.frame(
       recip.conc = sapply(x[[1]], function(y)
         1 / y),
@@ -315,7 +294,6 @@ my.MMModelCall <- function(x)
                      Km = lbStat$Km),
       data = x)
   
-  
   return(model)
 }
 
@@ -339,9 +317,91 @@ my.MMPlot <- function()
       labs(title = "Michaelis-Menten Plot",
            x = "[S]",
            y = "Rate") 
-    
   })
   
   do.call(grid.arrange, plots)
 }
 
+
+## Inhibitor stuff
+
+my.InhibitorRestructure <- function()
+{
+  restrDat <- my.restructure()
+  restrDat$inhib
+  restrDat.new <- data.frame(conc = double(),
+                             rate = double(),
+                             trial = factor())
+  inhibConc <- c()
+  
+  for(index in 1:length(restrDat))
+  {
+    inhibConc[[index]] <- readline(prompt = "Enter inhibitor conc: ")
+    for(index2 in 1:length(restrDat[[index]]))
+    {
+      restrDat[[index]]$inhib[[index2]] <- inhibConc[[index]]
+    }
+    restrDat.new <- rbind(restrDat.new, restrDat[[index]])
+  }
+  
+  return(restrDat.new)
+}
+
+my.InhibtorLBPlot <- function()
+{
+  ## Create a dataframe containing all data, indexed by trial and inhibitor
+  iDat <- my.InhibitorRestructure()
+  inhibList <- list()
+  
+  #iDat$inhib <- factor(iDat$inhib)
+
+  tempDF <- data.frame(
+      recip.conc = sapply(iDat[[1]], function(y)
+        1 / y),
+      recip.rate = sapply(iDat[[2]], function(y)
+        1 / y),
+      trial = iDat[[3]],
+      inhib = iDat[[4]])
+  
+  recip.plot <- ggplot(data = tempDF, 
+                       aes(x = recip.conc, 
+                           y = recip.rate, 
+                           colour = inhib)) +
+    geom_point(shape = iDat$trial) +
+    geom_smooth(method = "glm",
+                se = F,
+                fullrange = T) +
+    labs(title = "Lineweaver-Burk Plot",
+         x = "1/[S]",
+         y = "1/v") +
+    theme_classic() +
+    geom_hline(yintercept = 0) +
+    geom_vline(xintercept = 0) +
+    theme(axis.line = element_blank()) #+
+    #xlim(my.getStatLB(iDat)$x.intercept, NA)
+  
+  do.call(grid.arrange, recip.plot)
+  ##################
+  # ldat <- list()
+  # ldat[[1]]<- subset(iDat, inhib == 0.5)
+  # ldat[[2]]<- subset(iDat, inhib == 1)
+  # ldat[[3]]<- subset(iDat, inhib == 0)
+  # 
+  # models <- list()
+  # 
+  # for(i in 1:3)
+  # {
+  #   models[[i]] <- glm(data = ldat[[i]],
+  #                      formula = recip.rate ~ recip.conc,
+  #                      family = gaussian)
+  #   summary(models[[i]])
+  #   
+  # }
+  
+  
+  ## Finish later
+  
+  # for(index in 1:level)
+  # {}
+ 
+}
